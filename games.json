@@ -1,0 +1,5 @@
+[
+  {"id":1,"title":"Puzzle Couleurs","price":3.5,"age":"3-5","img":"./img/puzzle.jpg","desc":"Puzzle simple pour apprendre les couleurs."},
+  {"id":2,"title":"Memo Animaux","price":4.0,"age":"4-7","img":"./img/memo.jpg","desc":"Memory avec des animaux mignons."},
+  {"id":3,"title":"Math Minis","price":5.0,"age":"6-9","img":"./img/math.jpg","desc":"Jeux mathématiques ludiques."}
+]
