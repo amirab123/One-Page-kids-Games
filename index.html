@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Jeux pour enfants — One Page</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+
+    .card-img{height:140px;object-fit:cover}
+  </style>
+</head>
+<body class="bg-sky-50 text-slate-800">
+  <header class="bg-white shadow-sm sticky top-0 z-20">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+      <h1 class="text-2xl font-extrabold">Mini-Jeux<span class="text-green-700">Kids</span></h1>
+      <nav class="space-x-4 text-sm">
+        <a href="#jeux" class="hover:underline">Jeux</a>
+        <a href="#panier" class="hover:underline">Panier</a>
+        <a href="#contact" class="hover:underline">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-8">
+    <!-- Hero -->
+    <section class="mb-8 flex flex-col md:flex-row items-center gap-6">
+      <div class="flex-1">
+        <h2 class="text-3xl md:text-4xl font-bold mb-2">Jeux éducatifs et ludiques pour enfants</h2>
+        <p class="text-slate-600">Découvrez une sélection de mini-jeux adaptés aux 3-10 ans. Ajoutez au panier, puis contactez-nous pour plus d'informations.</p>
+        <div class="mt-4">
+          <button id="voir-jeux" class="px-4 py-2 bg-green-700 text-white rounded-md">Voir les jeux</button>
+        </div>
+      </div>
+      <img src="img/top-view-kid-playing-with-colorful-toys.jpg" alt="Enfants jouant" class="w-64 h-40 rounded-lg object-cover shadow-md" />
+    </section>
+
+
+    <section id="jeux" class="mb-12">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-2xl font-semibold">Nos jeux</h3>
+        <div>
+          <input id="search" placeholder="Rechercher un jeu..." class="px-3 py-2 border rounded-md" />
+        </div>
+      </div>
+
+      <div id="grid-jeux" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    
+      </div>
+
+      <p id="msg-erreur" class="text-red-500 mt-4 hidden">Impossible de charger les jeux (utilisation des données locales).</p>
+    </section>
+
+    <!-- Panier -->
+    <section id="panier" class="mb-12">
+      <h3 class="text-2xl font-semibold mb-4">Panier</h3>
+      <div id="panier-vue" class="bg-white rounded-lg p-4 shadow-sm">
+        <p id="panier-vide" class="text-slate-600">Votre panier est vide.</p>
+        <ul id="liste-panier" class="divide-y mt-2"></ul>
+        <div class="mt-4 flex items-center justify-between">
+          <strong>Total: <span id="total">0</span> €</strong>
+          <div>
+            <button id="vider-panier" class="px-3 py-1 border rounded-md mr-2">Vider</button>
+            <button id="checkout" class="px-3 py-1 bg-emerald-500 text-white rounded-md">Commander</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <section id="contact" class="mb-16">
+      <h3 class="text-2xl font-semibold mb-4">Contact</h3>
+      <form id="form-contact" class="bg-white p-6 rounded-lg shadow-sm max-w-xl">
+        <div class="grid grid-cols-1 gap-4">
+          <div>
+            <label class="block text-sm font-medium">Nom</label>
+            <input type="text" id="nom" class="mt-1 block w-full px-3 py-2 border rounded-md" required />
+            <p class="text-sm text-red-500 mt-1 hidden" data-error-for="nom">Veuillez entrer votre nom.</p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium">Email</label>
+            <input type="email" id="email" class="mt-1 block w-full px-3 py-2 border rounded-md" required />
+            <p class="text-sm text-red-500 mt-1 hidden" data-error-for="email">Email invalide.</p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium">Message</label>
+            <textarea id="message" rows="4" class="mt-1 block w-full px-3 py-2 border rounded-md" required></textarea>
+            <p class="text-sm text-red-500 mt-1 hidden" data-error-for="message">Le message doit contenir au moins 10 caractères.</p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <input type="checkbox" id="consent" />
+            <label for="consent" class="text-sm">J'accepte d'être recontacté(e).</label>
+          </div>
+
+          <div>
+            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md">Envoyer</button>
+          </div>
+
+          <p id="contact-success" class="text-green-600 hidden">Merci — message envoyé !</p>
+        </div>
+      </form>
+    </section>
+
+    <footer class="py-8 text-center text-sm text-slate-500">
+      &copy; <span id="annee"></span> Mini-Jeux Kids — Exemple
+    </footer>
+  </main>
+
+  <script>
+  const API_URL = './games.json';
+
+  
+
+
+    let jeux = [];
+    let panier = JSON.parse(localStorage.getItem('panier')||'[]');
+
+    const grid = document.getElementById('grid-jeux');
+    const msgErreur = document.getElementById('msg-erreur');
+    const searchInput = document.getElementById('search');
+
+    // Utilitaire: format monnaie
+    function formatEUR(n){ return Number(n).toFixed(2).replace('.',',') }
+
+    // Récupérer jeux depuis API
+    async function chargerJeux(){
+      try{
+        const res = await fetch(API_URL, { method:'GET' });
+        if(!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        if(!Array.isArray(data)) throw new Error('Format inattendu');
+        jeux = data;
+      }catch(err){
+        console.error('Erreur fetch jeux:', err);
+        jeux = fallbackGames;
+        msgErreur.classList.remove('hidden');
+      }
+      afficherJeux(jeux);
+    }
+
+
+    function afficherJeux(list){
+      grid.innerHTML = '';
+      list.forEach(j=>{
+        const card = document.createElement('article');
+        card.className = 'bg-white rounded-lg shadow-sm overflow-hidden';
+        card.innerHTML = `
+          <img src="${j.img}" alt="${j.title}" class="w-full card-img" />
+          <div class="p-4">
+            <h4 class="font-semibold">${j.title}</h4>
+            <p class="text-sm text-slate-600">${j.desc || ''}</p>
+            <div class="mt-3 flex items-center justify-between">
+              <div class="text-sm text-slate-700">${j.age ? 'Âge: '+j.age : ''}</div>
+              <div class="text-lg font-bold">${formatEUR(j.price)} €</div>
+            </div>
+            <div class="mt-3 flex gap-2">
+              <button class="ajout px-3 py-1 bg-green-500 text-white rounded-md" data-id="${j.id}">Ajouter</button>
+              <button class="voir px-3 py-1 border rounded-md" data-id="${j.id}">Voir</button>
+            </div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+
+  
+      document.querySelectorAll('.ajout').forEach(b=>b.addEventListener('click',e=>{
+        const id = Number(e.currentTarget.dataset.id);
+        const item = jeux.find(x=>x.id===id);
+        if(item) ajouterAuPanier(item);
+      }));
+
+      document.querySelectorAll('.voir').forEach(b=>b.addEventListener('click',e=>{
+        const id = Number(e.currentTarget.dataset.id);
+        const item = jeux.find(x=>x.id===id);
+        if(item) alert(item.title + "\n\n" + (item.desc||'') + "\nPrix: " + formatEUR(item.price) + ' €');
+      }));
+    }
+
+
+    searchInput.addEventListener('input', ()=>{
+      const q = searchInput.value.trim().toLowerCase();
+      const filtr = jeux.filter(j=> j.title.toLowerCase().includes(q) || (j.desc||'').toLowerCase().includes(q));
+      afficherJeux(filtr);
+    });
+
+  
+    function ajouterAuPanier(item){
+      const exist = panier.find(p=>p.id===item.id);
+      if(exist) exist.qty++;
+      else panier.push({id:item.id,title:item.title,price:item.price,qty:1});
+      sauvegarderPanier();
+      renderPanier();
+      notif('Ajouté au panier : ' + item.title);
+    }
+
+    function supprimerItem(id){
+      panier = panier.filter(p=>p.id!==id);
+      sauvegarderPanier();
+      renderPanier();
+    }
+
+ 
+    document.getElementById('vider-panier').addEventListener('click', ()=>{
+      panier = [];
+      sauvegarderPanier();
+      renderPanier();
+    });
+
+ 
+    document.getElementById('checkout').addEventListener('click', ()=>{
+      if(panier.length===0){ alert('Votre panier est vide.'); return; }
+
+      alert('Merci pour votre commande — (simulé)');
+      panier=[]; sauvegarderPanier(); renderPanier();
+    });
+
+ 
+    function sauvegarderPanier(){ localStorage.setItem('panier', JSON.stringify(panier)); }
+
+
+    function renderPanier(){
+      const liste = document.getElementById('liste-panier');
+      const vide = document.getElementById('panier-vide');
+      liste.innerHTML = '';
+      if(panier.length===0){ vide.classList.remove('hidden'); document.getElementById('total').textContent = '0'; return; }
+      vide.classList.add('hidden');
+      let total=0;
+      panier.forEach(p=>{
+        total += p.price * p.qty;
+        const li = document.createElement('li');
+        li.className = 'py-2 flex items-center justify-between';
+        li.innerHTML = `
+          <div>
+            <div class="font-medium">${p.title}</div>
+            <div class="text-sm text-slate-600">${p.qty} × ${formatEUR(p.price)} €</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button class="moins px-2 py-1 border rounded" data-id="${p.id}">-</button>
+            <button class="plus px-2 py-1 border rounded" data-id="${p.id}">+</button>
+            <button class="suppr px-2 py-1 text-red-600" data-id="${p.id}">✖</button>
+          </div>
+        `;
+        liste.appendChild(li);
+      });
+      document.getElementById('total').textContent = formatEUR(total);
+
+      // events quantité
+      document.querySelectorAll('.plus').forEach(b=>b.addEventListener('click', e=>{
+        const id = Number(e.currentTarget.dataset.id); const it = panier.find(p=>p.id===id); if(it){ it.qty++; sauvegarderPanier(); renderPanier(); }
+      }));
+      document.querySelectorAll('.moins').forEach(b=>b.addEventListener('click', e=>{
+        const id = Number(e.currentTarget.dataset.id); const it = panier.find(p=>p.id===id); if(it){ it.qty = Math.max(1,it.qty-1); sauvegarderPanier(); renderPanier(); }
+      }));
+      document.querySelectorAll('.suppr').forEach(b=>b.addEventListener('click', e=>{
+        const id = Number(e.currentTarget.dataset.id); supprimerItem(id);
+      }));
+    }
+
+    // Notification simple
+    function notif(msg){
+      const el = document.createElement('div');
+      el.className = 'fixed right-4 bottom-4 bg-slate-800 text-white px-3 py-2 rounded shadow';
+      el.textContent = msg;
+      document.body.appendChild(el);
+      setTimeout(()=>el.remove(),2500);
+    }
+
+    // Formulaire contact: validation simple
+    const form = document.getElementById('form-contact');
+    form.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const nom = document.getElementById('nom');
+      const email = document.getElementById('email');
+      const message = document.getElementById('message');
+      const consent = document.getElementById('consent');
+
+      // reset errors
+      document.querySelectorAll('[data-error-for]').forEach(p=>p.classList.add('hidden'));
+      let ok=true;
+      if(nom.value.trim().length===0){ showErr('nom'); ok=false; }
+      if(!/^[\w.-]+@[\w.-]+\.[A-Za-z]{2,}$/.test(email.value)) { showErr('email'); ok=false; }
+      if(message.value.trim().length<10){ showErr('message'); ok=false; }
+      if(!consent.checked){ alert('Veuillez accepter d\'être recontacté(e).'); return; }
+
+      if(!ok) return;
+
+     
+      try{
+
+        document.getElementById('contact-success').classList.remove('hidden');
+        form.reset();
+        setTimeout(()=>document.getElementById('contact-success').classList.add('hidden'),3500);
+      }catch(err){
+        console.error('Erreur envoi contact',err);
+        alert('Erreur lors de l\'envoi.');
+      }
+    });
+    function showErr(name){ document.querySelector(`[data-error-for="${name}"]`).classList.remove('hidden'); }
+
+    document.getElementById('annee').textContent = new Date().getFullYear();
+    document.getElementById('voir-jeux').addEventListener('click', ()=> location.hash='#jeux');
+
+
+    chargerJeux();
+    renderPanier();
+
+  </script>
+</body>
+</html>
